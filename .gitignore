@@ -1,0 +1,11 @@
+build/
+*.o
+*.elf
+*.elf32
+*.iso
+*.map
+*.d
+
+compile_commands.json
+.cache/
+.DS_Store
