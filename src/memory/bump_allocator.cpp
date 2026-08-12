@@ -3,17 +3,19 @@
 namespace tinyos {
 
 void* BumpAllocator::allocate(std::size_t bytes, std::size_t alignment) {
-    offset_ = align_up(offset_, alignment);
 
-    if (offset_ + bytes > capacity_) {
+    if (align_up(offset_, alignment) + bytes > capacity_) {
         ++stats_.failed_allocations;
         return nullptr;
     }
+
+    offset_ = align_up(offset_, alignment);
 
     void* ret = base_ + offset_;
 
     offset_ += bytes;
     stats_.bytes_in_use = offset_;
+    ++stats_.allocations;
     return ret;
 }
 
