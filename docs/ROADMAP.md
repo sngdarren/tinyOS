@@ -157,6 +157,48 @@ loads. Show starvation with naive priority, then fix it with aging.
 
 ---
 
+## 6. Simulated kernel-bypass datapath
+
+Files: `include/tinyos/net/`.
+
+A userspace model of how DPDK-style bypass actually works. No special hardware,
+no Linux — a thread plays the NIC, and the real kernel provides the baseline to
+beat.
+
+Depends on §1b (pool allocator) and §2 (SPSC ring). Do those first; this module
+is mostly assembling them.
+
+**Build:**
+
+- `Mbuf` — fixed-size packet buffer. Allocated from your **pool allocator**;
+  that is exactly what a real mbuf pool is.
+- RX and TX **descriptor rings** — your **SPSC ring**, holding mbuf indices
+  rather than pointers so the model stays relocatable.
+- A "NIC" thread producing packets into the RX ring at a controlled rate.
+- A poll-mode loop: spin on the ring, process in batches, never block.
+
+**The baseline that makes it credible:** the same traffic over loopback UDP
+sockets through the real kernel. That path is real — real syscalls, real copies,
+real scheduler wakeups — and it runs anywhere.
+
+**Experiments, all measurable locally:**
+
+| Comparison | What it isolates |
+|---|---|
+| busy-poll vs blocking wakeup | scheduler wakeup latency, and its tail |
+| batch 1 vs 32 | per-packet syscall//loop overhead, amortised |
+| zero-copy vs copy-per-packet | memory bandwidth on the hot path |
+| padded vs shared ring indices | false sharing, again |
+
+Report round-trip percentiles, not throughput averages.
+
+**State the limits honestly** — it models the software datapath, not the
+hardware: no DMA, no PCIe latency, no IRQ coalescing, no NIC offload. Saying
+that unprompted reads as rigour. Claiming you "implemented kernel bypass" when
+you modelled it reads as the opposite.
+
+---
+
 # What to record as you go
 
 Keep a short results file per module: the numbers, the machine, and your
