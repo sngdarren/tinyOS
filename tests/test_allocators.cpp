@@ -106,18 +106,28 @@ void run_conformance(Allocator& alloc, bool supports_free) {
 }  // namespace
 
 // ---------------------------------------------------------------------------
-// REGISTER YOUR ALLOCATORS HERE
+// REGISTERED ALLOCATORS
 //
-// Once you have written one, uncomment the include and the TEST block:
-//
-//   #include "tinyos/memory/bump_allocator.hpp"
-//
-//   TEST("bump allocator conformance") {
-//       alignas(64) static std::byte buffer[1 << 20];
-//       tinyos::BumpAllocator alloc(buffer, sizeof(buffer));
-//       run_conformance(alloc, /*supports_free=*/false);
-//   }
+// Each gets its own buffer. They are static so a 1 MiB arena does not blow the
+// stack, and alignas(64) so the pool can hand out cache-line-aligned blocks.
 // ---------------------------------------------------------------------------
+
+#include "tinyos/memory/bump_allocator.hpp"
+#include "tinyos/memory/pool_allocator.hpp"
+
+TEST("bump allocator conformance") {
+    alignas(64) static std::byte buffer[1 << 20];
+    tinyos::BumpAllocator alloc(buffer, sizeof(buffer));
+    run_conformance(alloc, /*supports_free=*/false);
+}
+
+TEST("pool allocator conformance") {
+    // 64-byte blocks aligned to 64: the suite requests alignments up to 64, and
+    // a pool can only honour what its block alignment guarantees.
+    alignas(64) static std::byte buffer[1 << 20];
+    tinyos::PoolAllocator alloc(buffer, sizeof(buffer), 64, 64);
+    run_conformance(alloc, /*supports_free=*/true);
+}
 
 int main() {
     if (tinyos::test::registry().empty()) {
