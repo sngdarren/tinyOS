@@ -1,7 +1,7 @@
 #pragma once
 #include "tinyos/memory/allocator.hpp"
 #include <cstddef>
-#include <cassert>
+#include <stdexcept>
 
 namespace tinyos {
 
@@ -13,7 +13,9 @@ public:
         block_size_(block_size), free_head_(nullptr) {
             
             // block size needs to be > size of FreeNode, because we cannot allocate a fraction of a FreeNode
-            assert(block_size >= sizeof(FreeNode));
+            if (block_size < sizeof(FreeNode)) {
+                throw std::invalid_argument("The block size cannot be smaller than the size of a FreeNode!");
+            }
 
             block_count_ = capacity_ / block_size_;
             stats_.bytes_reserved = block_count_ * block_size_;
