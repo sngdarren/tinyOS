@@ -71,11 +71,9 @@ public:
         return *this;
     }
 
-    // ---- producer side -----------------------------------------------------
-    // Only the producer thread may call these.
-
+    // producer side 
     bool try_produce(T const& item) {
-        // Our own index -- nobody else writes it, so relaxed is enough.
+        // Our own index, nobody else writes it, so relaxed is enough
         std::size_t const head = head_.load(std::memory_order_relaxed);
 
         // Fast path: trust the stale copy. tail_ only ever grows, so if the
@@ -117,8 +115,7 @@ public:
         return count;
     }
 
-    // ---- consumer side -----------------------------------------------------
-    // Only the consumer thread may call these.
+    // consumer side
 
     // Pointer to the oldest item, or nullptr if empty. Valid only until the
     // next try_consume() -- after that the producer may overwrite the slot.
@@ -169,12 +166,7 @@ public:
         return count;
     }
 
-    // ---- observers ---------------------------------------------------------
-    // Callable from either thread, but only approximate under concurrency: the
-    // answer can be stale the instant it returns. Use these for tests and
-    // reporting, never to decide whether to push or pop -- that is what the
-    // try_* functions are for.
-
+    // observers - callable from either thread
     std::size_t size() const {
         return head_.load(std::memory_order_acquire) - tail_.load(std::memory_order_acquire);
     }
