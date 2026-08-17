@@ -180,11 +180,14 @@ private:
     std::size_t capacity_;
     std::size_t mask_;    
     
-    // cached values sit on diff cachelines
-    alignas(64) std::atomic<std::size_t> head_;
+    // Each index sits on its own cache line, together with the cached copy its
+    // owner reads. kCacheLineSize is 128 on this machine, not 64 -- padding to
+    // 64 here would leave head_ and tail_ sharing a line and quietly reinstate
+    // the false sharing this is meant to prevent.
+    alignas(kCacheLineSize) std::atomic<std::size_t> head_;
     std::size_t cached_tail_;
-    
-    alignas(64) std::atomic<std::size_t> tail_;
+
+    alignas(kCacheLineSize) std::atomic<std::size_t> tail_;
     std::size_t cached_head_;
 };
 

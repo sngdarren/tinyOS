@@ -9,17 +9,13 @@
 namespace tinyos::net {
 
 inline constexpr std::size_t kMbufPayloadSize = 2048;
-inline constexpr std::size_t kMbufAlignment = 64;
+inline constexpr std::size_t kMbufAlignment = kCacheLineSize;
 
 // A packet buffer. Fixed size so it can live in a pool, and cache-line aligned
 // so two mbufs in flight on different cores never share a line.
-//
-// tx_tick rides inside the buffer rather than alongside it: the timestamp
-// travels with the packet, so the consumer can compute one-way latency with no
-// side channel and no extra synchronisation.
 struct alignas(kMbufAlignment) Mbuf {
-    std::uint64_t tx_tick;                 // producer's rdtick() at handoff
-    std::uint32_t len;                     // valid bytes in payload
+    std::uint64_t tx_tick;                 
+    std::uint32_t len;                     
     std::uint8_t payload[kMbufPayloadSize];
 };
 
@@ -28,16 +24,6 @@ static_assert(sizeof(Mbuf) % kMbufAlignment == 0,
 
 // Owns the backing store for a fixed set of mbufs and translates between the
 // u32 handles that travel through the rings and real Mbuf pointers.
-//
-// Why handles and not pointers: it mirrors how a real NIC descriptor ring
-// works, halves the bytes moving through the ring, and keeps the buffers
-// relocatable. Everything downstream passes u32 around and comes here to
-// resolve it.
-//
-// Threading: acquire()/release() go through the pool's free list, which is
-// single-threaded. Once buffers are cycling between two threads they must be
-// handed back over a free ring instead -- see docs/ROADMAP.md section 6.
-// at() and index_of() are pure address arithmetic and safe from any thread.
 class MbufPool {
 public:
     explicit MbufPool(std::size_t count)

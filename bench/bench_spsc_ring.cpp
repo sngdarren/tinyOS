@@ -217,7 +217,8 @@ int main() {
                 static_cast<unsigned long long>(tinyos::tick_frequency()));
 
     std::printf("--- false sharing: padded vs packed indices ---\n");
-    double const padded = run_throughput<tinyos::SPSC<int>>("padded (alignas 64)");
+    std::printf("(cache line on this machine: %zu bytes)\n", tinyos::kCacheLineSize);
+    double const padded = run_throughput<tinyos::SPSC<int>>("padded (own lines)");
     double const packed = run_throughput<PackedSPSC<int>>("packed (shared line)");
     std::printf("%-28s %10.2fx slower when packed\n\n", "cost of false sharing",
                 packed / padded);

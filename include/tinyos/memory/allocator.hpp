@@ -60,6 +60,16 @@ constexpr bool is_power_of_two(std::size_t n) {
     return n != 0 && (n & (n - 1)) == 0;
 }
 
+// The unit that matters for false sharing: two objects written by different
+// cores must not land in the same line.
+//
+// Measured, not assumed -- `sysctl hw.cachelinesize` reports 128 on Apple
+// silicon, while x86-64 is 64. Padding to 64 on this machine leaves two
+// "separated" fields sharing one line, which silently defeats the padding.
+#if defined(__aarch64__)
+inline constexpr std::size_t kCacheLineSize = 128;
+#else
 inline constexpr std::size_t kCacheLineSize = 64;
+#endif
 
 }  // namespace tinyos

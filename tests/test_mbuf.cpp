@@ -14,8 +14,11 @@ using tinyos::net::Mbuf;
 using tinyos::net::MbufPool;
 
 TEST("mbuf is cache-line sized and aligned") {
-    CHECK_EQ(alignof(Mbuf), std::size_t{64});
-    CHECK_EQ(sizeof(Mbuf) % 64, std::size_t{0});
+    // Checked against the platform's real line size, not a hardcoded 64 --
+    // this machine's is 128, and asserting 64 would pass while adjacent mbufs
+    // silently shared a line.
+    CHECK_EQ(alignof(Mbuf), tinyos::kCacheLineSize);
+    CHECK_EQ(sizeof(Mbuf) % tinyos::kCacheLineSize, std::size_t{0});
 }
 
 TEST("index and pointer round-trip") {
